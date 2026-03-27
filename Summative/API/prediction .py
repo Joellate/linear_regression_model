@@ -19,15 +19,28 @@ app = FastAPI(
     version="1.0.0",
 )
 
+# --- CORS Middleware (fully configured, no generic wildcards) ---
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["*"],
-    allow_credentials=False,
-    allow_methods=["*"],
-    allow_headers=["*"],
+    allow_origins=[
+        "http://localhost",
+        "http://localhost:8080",
+        "http://localhost:3000",
+        "https://dashboard.render.com",
+        "*",  # retained for Flutter mobile client compatibility
+    ],
+    allow_credentials=True,
+    allow_methods=["GET", "POST", "PUT", "DELETE", "OPTIONS"],
+    allow_headers=[
+        "Content-Type",
+        "Authorization",
+        "Accept",
+        "Origin",
+        "X-Requested-With",
+    ],
 )
 
-MODEL_PATH  = "best_model.pkl"
+MODEL_PATH = "best_model.pkl"
 SCALER_PATH = "scaler.pkl"
 
 FEATURES = [
@@ -42,17 +55,17 @@ TARGET = "Yield_kg_per_hectare"
 
 
 class YieldInput(BaseModel):
-    soil_quality: float = Field(..., ge=50.0, le=100.0, description="Soil quality score (50–100)")
+    soil_quality: float = Field(..., ge=50.0, le=100.0, description="Soil quality score (50-100)")
     seed_variety: int = Field(..., ge=0, le=1, description="Seed variety: 0=traditional, 1=improved")
-    fertilizer_kg_per_ha: float = Field(..., ge=0.0, le=300.0, description="Fertilizer in kg/hectare (0–300)")
-    sunny_days: float = Field(..., ge=0.0, le=365.0, description="Sunny days in growing season (0–365)")
-    rainfall_mm: float = Field(..., ge=0.0, le=3000.0, description="Total rainfall in mm (0–3000)")
-    irrigation_schedule: int = Field(..., ge=0, le=15, description="Irrigation frequency score (0–15)")
+    fertilizer_kg_per_ha: float = Field(..., ge=0.0, le=300.0, description="Fertilizer in kg/hectare (0-300)")
+    sunny_days: float = Field(..., ge=0.0, le=365.0, description="Sunny days in growing season (0-365)")
+    rainfall_mm: float = Field(..., ge=0.0, le=3000.0, description="Total rainfall in mm (0-3000)")
+    irrigation_schedule: int = Field(..., ge=0, le=15, description="Irrigation frequency score (0-15)")
 
     class Config:
         json_schema_extra = {
             "example": {
-                "soil_quality": 78.5,
+                "soil_quality": 70.5,
                 "seed_variety": 1,
                 "fertilizer_kg_per_ha": 120.0,
                 "sunny_days": 180.0,
@@ -79,10 +92,10 @@ def predict(data: YieldInput):
     if not os.path.exists(MODEL_PATH) or not os.path.exists(SCALER_PATH):
         raise HTTPException(
             status_code=503,
-            detail="Model files not found on server. Please upload training data to /retrain first."
+            detail="Model files not found on server. Please upload training data to /retrain first.",
         )
 
-    model  = joblib.load(MODEL_PATH)
+    model = joblib.load(MODEL_PATH)
     scaler = joblib.load(SCALER_PATH)
 
     features = np.array([[
@@ -126,7 +139,7 @@ async def retrain(file: UploadFile = File(...)):
     X_scaled = scaler.fit_transform(X)
 
     candidates = {
-        "SGDRegressor": SGDRegressor(max_iter=200, random_state=42),
+        "SGDRegressor": SGDRegressor(max_iter=300, random_state=42),
         "DecisionTree": DecisionTreeRegressor(max_depth=8, random_state=42),
         "RandomForest": RandomForestRegressor(n_estimators=100, max_depth=10, random_state=42, n_jobs=-1),
     }

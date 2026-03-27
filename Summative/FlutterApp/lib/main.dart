@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:http/http.dart' as http;
 import 'dart:convert';
+import 'dart:async';
 
 void main() {
   runApp(const MyApp());
@@ -63,36 +64,44 @@ class _PredictionPageState extends State<PredictionPage> {
     });
 
     try {
+      final body = jsonEncode({
+        'soil_quality':         double.parse(_soilQualityController.text.trim()),
+        'seed_variety':         int.parse(_seedVarietyController.text.trim()),
+        'fertilizer_kg_per_ha': double.parse(_fertilizerController.text.trim()),
+        'sunny_days':           double.parse(_sunnyDaysController.text.trim()),
+        'rainfall_mm':          double.parse(_rainfallController.text.trim()),
+        'irrigation_schedule':  int.parse(_irrigationController.text.trim()),
+      });
+
+      debugPrint('REQUEST BODY: $body');
+
       final response = await http.post(
-        Uri.parse('https://dashboard.render.com/web/srv-d70p49ma2pns739ngosg/deploys/dep-d70pk6vgi27c73cn9e6g?r=2026-03-23%4019%3A51%3A59%7E2026-03-23%4019%3A58%3A19'),
+        Uri.parse('https://rwanda-yield-api.onrender.com/predict'),
         headers: {'Content-Type': 'application/json'},
-        body: jsonEncode({
-          'soil_quality':           double.parse(_soilQualityController.text),
-          'seed_variety':           int.parse(_seedVarietyController.text),
-          'fertilizer_kg_per_ha':   double.parse(_fertilizerController.text),
-          'sunny_days':             double.parse(_sunnyDaysController.text),
-          'rainfall_mm':            double.parse(_rainfallController.text),
-          'irrigation_schedule':    int.parse(_irrigationController.text),
-        }),
-      );
+        body: body,
+      ).timeout(const Duration(seconds: 60));
+
+      debugPrint('STATUS: ${response.statusCode}');
+      debugPrint('RESPONSE: ${response.body}');
 
       if (response.statusCode == 200) {
         final data = jsonDecode(response.body);
         setState(() {
           _result = '🌾 Predicted Yield: ${data['predicted_yield_kg_per_hectare']} kg/hectare';
         });
-      } else if (response.statusCode == 422) {
-        setState(() {
-          _result = '⚠️ Invalid input: Please check that all values are within the allowed ranges.';
-        });
       } else {
         setState(() {
-          _result = '❌ Error: Could not get prediction. Try again.';
+          _result = '❌ Status ${response.statusCode}: ${response.body}';
         });
       }
-    } catch (e) {
+    } on TimeoutException {
       setState(() {
-        _result = '❌ Network error: Please check your internet connection.';
+        _result = '⏳ Server timed out. Open https://rwanda-yield-api.onrender.com/docs in browser first to wake it up, then try again.';
+      });
+    } catch (e) {
+      debugPrint('EXCEPTION: $e');
+      setState(() {
+        _result = '❌ Exception: $e';
       });
     } finally {
       setState(() => _isLoading = false);
