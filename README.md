@@ -1,4 +1,4 @@
-# 🌾 Rwanda Crop Yield Prediction
+#  Rwanda Crop Yield Prediction
 
 ## Mission
 Help small farmers in Rwanda thrive by predicting crop yield (kg/hectare) based on soil quality, rainfall, fertilizer use, sunlight, seed variety, and irrigation inputs — enabling smarter farming decisions.
