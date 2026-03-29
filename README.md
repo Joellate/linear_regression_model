@@ -17,7 +17,7 @@ Agricultural Yield Prediction Dataset from Kaggle — 20,000 records with featur
 4. Run `flutter run` to launch the app on your device or emulator
 
 ## Video Demo
-[Link to YouTube video demo]
+[(https://youtu.be/Pq0hg2el4BI)]
 
 ## Project Structure
 ```
